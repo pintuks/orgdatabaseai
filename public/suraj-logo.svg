@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Suraj Inter Gold logo</title>
+  <desc id="desc">Black square with gold SRJ monogram and a small diamond accent.</desc>
+  <rect x="0" y="0" width="160" height="160" fill="#050505" rx="16" ry="16" />
+
+  <g fill="none" stroke="#d4a244" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M54 46 C43 46 32 52 32 62 C32 73 44 78 54 78 C64 78 76 84 76 95 C76 106 64 114 52 114 C41 114 32 109 29 102" />
+    <path d="M92 46 L92 114" />
+    <path d="M92 46 L110 46 C120 46 128 54 128 64 C128 74 120 82 110 82 L92 82" />
+    <path d="M110 82 L128 114" />
+    <path d="M138 54 L138 106 C138 116 130 124 120 124 C110 124 103 119 100 112" />
+    <path d="M112 38 L124 28 L136 38 L124 48 Z" />
+  </g>
+</svg>
