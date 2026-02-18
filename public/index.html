@@ -563,6 +563,34 @@
           .replaceAll("'", '&#39;')
       }
 
+      function formatCellValue(value) {
+        if (value == null) {
+          return ''
+        }
+
+        if (typeof value === 'string') {
+          return value
+        }
+
+        if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+          return String(value)
+        }
+
+        if (value instanceof Date) {
+          return value.toISOString()
+        }
+
+        if (typeof value === 'object') {
+          try {
+            return JSON.stringify(value)
+          } catch {
+            return '[unserializable object]'
+          }
+        }
+
+        return String(value)
+      }
+
       function isIdColumn(columnName) {
         const normalized = String(columnName || '').trim().toLowerCase()
         return normalized === 'id' || normalized.endsWith('id') || normalized.endsWith('_id') || normalized.includes('uuid')
@@ -602,7 +630,7 @@
               .map((col) => {
                 const classes = isIdColumn(col) ? 'col-id' : ''
                 const value = row[col] ?? ''
-                const text = escapeHtml(value)
+                const text = escapeHtml(formatCellValue(value))
                 return `<td class="${classes}" title="${text}">${text}</td>`
               })
               .join('')
