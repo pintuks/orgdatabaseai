@@ -1,0 +1,1525 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// -----------------------------
+// Enums (FileEntityType near top)
+// -----------------------------
+enum FileEntityType {
+  PAYMENT
+  EXPENSE
+  AGREEMENT
+  ASSET
+  TRAVEL_REQUEST
+  TRAVEL_LEG
+  RECEIPT
+  PROFILE_IMAGE
+  OTHER
+}
+
+// ------------------------------------------
+// ENUMS (place ALL enums here, top-level)
+// ------------------------------------------
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  LEAVE
+}
+
+enum EmployeeStatus {
+  ONBOARDING
+  ACTIVE
+  ON_PROBATION
+  ON_LEAVE
+  NOTICE_PERIOD
+  TERMINATED
+  RESIGNED
+  INACTIVE
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum ComponentType {
+  EARNING
+  DEDUCTION
+}
+
+enum CalculationType {
+  FIXED
+  PERCENTAGE_OF_BASIC
+  PERCENTAGE_OF_CTC
+  FORMULA
+}
+
+enum RuleType {
+  Budget_Limit
+  Allowance_Per_Diem
+  Rate
+  General_Guideline
+}
+
+enum Status {
+  Active
+  Inactive
+}
+
+enum CategoryStatus {
+  Enabled
+  Disabled
+}
+
+enum ExpenseStatus {
+  Draft
+  Submitted
+  Approved
+  Rejected
+  Reimbursed
+}
+
+enum ApprovalAction {
+  Pending
+  Approved
+  Rejected
+}
+
+enum AssetStatus {
+  WORKING
+  NOT_WORKING
+}
+
+enum AssetLendingStatus {
+  PENDING
+  APPROVED
+  RETURNED
+  REJECTED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+  RESUBMISSION_REQUESTED
+}
+
+enum AgreementStatus {
+  PENDING
+  VIEWED
+  SIGNED
+  EXPIRED
+  REVOKED
+}
+
+enum TravelRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  BOOKED
+  COMPLETED
+  CANCELLED
+}
+
+enum TravelLegType {
+  FLIGHT
+  TRAIN
+  HOTEL
+  CAR_RENTAL
+}
+
+enum ApprovalStatus {
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  CASH
+  CHEQUE
+}
+
+enum PaymentStatus {
+  PENDING_SYNC
+  SYNCED
+  RECONCILED
+  ERROR
+}
+
+enum LocationType {
+  OFFICE
+  VENDOR
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  SECURITY
+}
+
+enum Granularity {
+  ONE_MIN
+  FIVE_MIN
+  THIRTY_MIN
+}
+
+enum FileValidationStatus {
+  PENDING
+  VALID
+  INVALID
+  QUARANTINED
+}
+
+enum FileProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ------------------------------------------
+// ORGANIZATION & USER MANAGEMENT
+// ------------------------------------------
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  logo        String?
+  website     String?
+  email       String?
+  phone       String?
+  address     String?
+  country     String?
+  timezone    String   @default("UTC")
+  currency    String   @default("USD")
+  isActive    Boolean  @default(true)
+  weekendDays String[] @default(["SUN"])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  agreementTemplates       AgreementTemplate[]
+  assetTypes               AssetType[]
+  assets                   Asset[]
+  companyRelations         CompanyRelation[]
+  customers                Customer[]
+  departments              Department[]
+  designations             Designation[]
+  expenseCategories        ExpenseCategory[]
+  fileAttachments          FileAttachment[]
+  holidays                 Holiday[]
+  leaveTypes               LeaveType[]
+  locations                Location[]
+  menuItems                MenuItem[]
+  permissions              Permission[]
+  policyRules              PolicyRule[]
+  roles                    Role[]
+  salaryComponentTemplates SalaryComponentTemplate[]
+  salaryGroups             SalaryGroup[]
+  shifts                   Shift[]
+  storageQuota             StorageQuota?
+  trackerLocations         TrackerLocation[]         @relation(name: "OrganizationTrackerLocations")
+  trackerVisits            TrackerVisit[]            @relation(name: "OrganizationTrackerVisits")
+  users                    User[]
+
+  @@index([code])
+  @@index([isActive])
+  @@map("organizations")
+}
+
+model Holiday {
+  id             String        @id @default(cuid())
+  name           String
+  nameLocal      String?
+  description    String?
+  date           DateTime
+  dateYear       String
+  dateMonth      String
+  dateDay        String
+  weekDay        String?
+  type           String
+  country        String        @default("IN")
+  location       String?
+  language       String?
+  isExternal     Boolean       @default(false)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([date, country, organizationId, name])
+  @@index([date, id])
+  @@index([organizationId])
+  @@index([country, date])
+  @@index([isExternal])
+  @@index([type])
+  @@map("holidays")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  organizationId String?
+  locationId     String?
+  username       String    @unique
+  email          String    @unique
+  fullName       String
+  password       String
+  role           String    @default("EMPLOYEE")
+  refreshToken   String?
+  isActive       Boolean   @default(true)
+  lastLoginAt    DateTime?
+  emailVerified  Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // HR & Hierarchy
+  companyRelation CompanyRelation?
+  directReports   CompanyRelation[] @relation(name: "ReportsTo") // employees who report to this user (their CompanyRelation.reportToId == this.id)
+  location        Location?         @relation(fields: [locationId], references: [id])
+  organization    Organization?     @relation(fields: [organizationId], references: [id])
+  personalInfo    PersonalInfo?
+
+  // Assets
+  assets            Asset[]            @relation(name: "UserToAsset")
+  borrowedAssets    AssetLending[]     @relation(name: "Employee")
+  lentAssets        AssetLending[]     @relation(name: "LentBy")
+  returnedAssets    AssetLending[]     @relation(name: "ReturnedBy")
+  brokenAssets      Asset[]            @relation(name: "BrokenByUser")
+  assetTransactions AssetTransaction[]
+
+  // Expenses & Finance
+  expenses         Expense[]       @relation(name: "UserToExpense")
+  approvedExpenses Expense[]       @relation(name: "ApprovedByUser")
+  reimbursements   Reimbursement[]
+  recordedPayments Payment[]       @relation(name: "PaymentRecorder")
+  salaryDetails    SalaryDetails?
+
+  // Attendance & Tracking
+  attendanceRecords       AttendanceRecord[]
+  attendanceCreditCounters AttendanceCreditCounter[]
+  trackerLocations        TrackerLocation[]        @relation(name: "UserTrackerLocations")
+  trackerVisits           TrackerVisit[]           @relation(name: "UserTrackerVisits")
+  userLastLocation        UserLastLocation?        @relation(name: "UserLastLocation")
+
+  // Requests & Approvals
+  travelRequests TravelRequest[]   @relation(name: "UserTravelRequests")
+  leaveRequests  LeaveRequest[]
+  reviewedLeaves LeaveRequest[]    @relation(name: "LeaveReviewer")
+  approvalsMade  ApprovalHistory[] @relation(name: "UserApprovals") // For Travel
+  approvalsGiven Approval[]        @relation(name: "ApprovalToApprover") // For Expenses
+  agreements     Agreement[]
+
+  // System & Files
+  notifications   Notification[]
+  userPermissions UserPermission[]
+  systemLogs      SystemLog[]
+  kycDocuments    KycDocument[]
+  leaveBalances   LeaveBalance[]
+  uploadedFiles   FileAttachment[] @relation(name: "FileUploader")
+  deletedFiles    FileAttachment[] @relation(name: "FileDeleter")
+  fileUploadLogs  FileUploadLog[]  @relation(name: "FileUploadLogs")
+
+  @@unique([username, organizationId])
+  @@index([organizationId])
+  @@index([username])
+  @@index([fullName])
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  type           String
+  title          String
+  message        String
+  data           Json?
+  read           Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  delivered      Boolean   @default(false)
+  deliveredAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([userId, read])
+  @@index([organizationId, userId, read])
+  @@index([organizationId, userId, createdAt])
+  @@map("notifications")
+}
+
+model CompanyRelation {
+  id             String @id @default(cuid())
+  organizationId String
+  userId         String @unique
+
+  // Organizational placement
+  locationId    String?
+  shiftId       String?
+  departmentId  String?
+  designationId String?
+
+  // Reporting structure
+  reportToId String?
+  isManager  Boolean @default(false)
+
+  // HR lifecycle fields
+  probationStartDate DateTime?
+  probationEndDate   DateTime?
+  noticeStartDate    DateTime?
+  noticeEndDate      DateTime?
+  endDate            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  // Relations
+  department  Department?  @relation(fields: [departmentId], references: [id])
+  designation Designation? @relation(fields: [designationId], references: [id])
+  location    Location?    @relation(fields: [locationId], references: [id])
+  shift       Shift?       @relation(fields: [shiftId], references: [id])
+
+  // Reporting Logic: 'reportTo' is the Manager.
+  reportTo User? @relation(name: "ReportsTo", fields: [reportToId], references: [id], onDelete: SetNull)
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([locationId])
+  @@index([shiftId])
+  @@index([departmentId])
+  @@index([designationId])
+  @@index([reportToId])
+  @@map("company_relations")
+}
+
+// ------------------------------------------
+// TRAVEL
+// ------------------------------------------
+
+model TravelRequest {
+  id                    String              @id @default(cuid())
+  organizationId        String
+  requesterId           String? // nullable to preserve history if user deleted
+  tripName              String
+  purpose               String
+  status                TravelRequestStatus @default(PENDING)
+  startDate             DateTime
+  endDate               DateTime
+  totalCost             Float?
+  googleCalendarEventId String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  approvalHistory ApprovalHistory[]
+  legs            TravelLeg[]
+
+  requester User? @relation(name: "UserTravelRequests", fields: [requesterId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([requesterId])
+  @@index([status])
+  @@index([organizationId, status])
+  @@map("travel_requests")
+}
+
+model TravelLeg {
+  id              String        @id @default(cuid())
+  organizationId  String
+  travelRequestId String
+  type            TravelLegType
+  startDate       DateTime
+  endDate         DateTime
+  fromLocation    String?
+  toLocation      String?
+  details         Json
+  cost            Float?
+  travelRequest   TravelRequest @relation(fields: [travelRequestId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([travelRequestId])
+  @@map("travel_legs")
+}
+
+model ApprovalHistory {
+  id              String         @id @default(cuid())
+  organizationId  String
+  travelRequestId String
+  approverId      String
+  status          ApprovalStatus
+  comments        String?
+  timestamp       DateTime       @default(now())
+  approver        User           @relation(name: "UserApprovals", fields: [approverId], references: [id])
+  travelRequest   TravelRequest  @relation(fields: [travelRequestId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([travelRequestId])
+  @@index([approverId])
+  @@map("approval_history")
+}
+
+// ------------------------------------------
+// CUSTOMERS & PAYMENTS
+// ------------------------------------------
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  contact        String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  payments       Payment[]
+
+  @@index([organizationId])
+  @@map("customers")
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  organizationId    String
+  clientGeneratedId String // removed field-level @unique; keep composite below
+  amount            Decimal       @db.Decimal(10, 2)
+  paymentMethod     PaymentMethod
+  chequeNumber      String?
+  notes             String?
+  status            PaymentStatus @default(PENDING_SYNC)
+  recordedAtClient  DateTime
+  latitude          Float?
+  longitude         Float?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  recordedById      String?
+  customerId        String
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  recordedBy User?    @relation(name: "PaymentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([clientGeneratedId, organizationId])
+  @@index([organizationId])
+  @@index([recordedById])
+  @@index([customerId])
+  @@map("payments")
+}
+
+// ------------------------------------------
+// ATTENDANCE & TRACKING
+// ------------------------------------------
+
+model AttendanceRecord {
+  id                 String           @id @default(cuid())
+  organizationId     String
+  userId             String
+  date               DateTime         @default(now()) @db.Date
+  checkIn            DateTime?
+  checkOut           DateTime?
+  status             AttendanceStatus @default(ABSENT)
+  breakIntervals     Json?
+  totalWorkDuration  Float?
+  totalBreakDuration Float?
+  currentBreakStart  DateTime?
+  checkInIp          String?
+  checkOutIp         String?
+  checkInLocation    Json?
+  checkOutLocation   Json?
+  validationInfo     Json?
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackerLocations TrackerLocation[] @relation(name: "AttendanceTrackerLocations")
+  trackerVisits    TrackerVisit[]    @relation(name: "AttendanceTrackerVisits")
+
+  @@unique([userId, date, organizationId])
+  @@index([organizationId])
+  @@index([date])
+  @@index([status])
+  @@index([checkIn])
+  @@index([checkOut])
+  @@index([organizationId, date])
+  @@index([organizationId, status, date])
+  @@index([organizationId, userId, date])
+  @@map("attendance_records")
+}
+
+model AttendanceCreditCounter {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  userId              String
+  year                Int
+  fullDays            Int      @default(0)
+  halfDays            Int      @default(0)
+  attendanceCreditDays Float   @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, organizationId])
+  @@index([organizationId])
+  @@index([organizationId, year])
+  @@index([userId])
+  @@map("attendance_credit_counters")
+}
+
+model TrackerLocation {
+  id                 String   @id @default(cuid())
+  organizationId     String
+  userId             String
+  attendanceRecordId String?
+  latitude           Float
+  longitude          Float
+  address            Json? // {country, state, city, street, postalCode, neighborhood}
+  accuracy           Float?
+  timestamp          DateTime @default(now())
+  isOnline           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user             User              @relation(name: "UserTrackerLocations", fields: [userId], references: [id], onDelete: Cascade)
+  organization     Organization      @relation(name: "OrganizationTrackerLocations", fields: [organizationId], references: [id])
+  attendanceRecord AttendanceRecord? @relation(name: "AttendanceTrackerLocations", fields: [attendanceRecordId], references: [id])
+  visits           TrackerVisit[]
+
+  @@index([organizationId])
+  @@index([userId, timestamp])
+  @@index([attendanceRecordId])
+  @@index([timestamp])
+  @@index([organizationId, timestamp])
+  @@map("tracker_locations")
+}
+
+model TrackerVisit {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  userId             String
+  attendanceRecordId String?
+  locationId         String
+  startTime          DateTime
+  endTime            DateTime?
+  duration           Int?
+  address            Json?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user             User              @relation(name: "UserTrackerVisits", fields: [userId], references: [id], onDelete: Cascade)
+  organization     Organization      @relation(name: "OrganizationTrackerVisits", fields: [organizationId], references: [id])
+  attendanceRecord AttendanceRecord? @relation(name: "AttendanceTrackerVisits", fields: [attendanceRecordId], references: [id])
+  location         TrackerLocation   @relation(fields: [locationId], references: [id])
+
+  @@index([organizationId])
+  @@index([userId, startTime])
+  @@index([attendanceRecordId])
+  @@index([locationId])
+  @@map("tracker_visits")
+}
+
+model UserLastLocation {
+  userId         String   @id @map("user_id")
+  organizationId String
+  latitude       Float
+  longitude      Float
+  accuracy       Float?
+  timestamp      DateTime
+  isOnline       Boolean  @default(true)
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  user User @relation(name: "UserLastLocation", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("user_last_location")
+}
+
+model TrackerLocationAggregate {
+  id             String      @id @default(cuid())
+  userId         String
+  organizationId String
+  bucket         DateTime
+  granularity    Granularity
+  avgLat         Float?
+  avgLon         Float?
+  firstTs        DateTime?
+  lastTs         DateTime?
+  sampleCount    Int?
+
+  @@unique([userId, bucket, granularity])
+  @@index([userId, bucket])
+  @@index([organizationId, bucket])
+  @@map("tracker_location_aggregates")
+}
+
+// ------------------------------------------
+// PERMISSIONS (RBAC)
+// ------------------------------------------
+
+model Permission {
+  id               String   @id @default(cuid())
+  organizationId   String?
+  key              String   @unique
+  resource         String
+  action           String
+  category         String   @default("general")
+  description      String
+  parentId         String?
+  level            Int      @default(1)
+  menuPath         String?
+  sortOrder        Int      @default(0)
+  icon             String?
+  isMenuPermission Boolean  @default(false)
+  permissionType   String   @default("api")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  parent          Permission?      @relation(name: "PermissionHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Permission[]     @relation(name: "PermissionHierarchy")
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@unique([key, organizationId])
+  @@unique([resource, action, organizationId], map: "resource_action_org")
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([isMenuPermission])
+  @@index([permissionType])
+  @@index([level])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  permissionId String
+  isDenied     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([isDenied])
+  @@index([userId, isDenied])
+  @@map("user_permissions")
+}
+
+model MenuItem {
+  id             String        @id @default(cuid())
+  organizationId String?
+  path           String
+  icon           String
+  label          String
+  tooltip        String
+  parentId       String?
+  order          Int           @default(0)
+  isActive       Boolean       @default(true)
+  permissionKey  String?       // Links to Permission.key for menu visibility (e.g., "menu.dashboard")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  parent         MenuItem?     @relation(name: "MenuHierarchy", fields: [parentId], references: [id])
+  children       MenuItem[]    @relation(name: "MenuHierarchy")
+  menuRoles      MenuRole[]
+
+  @@unique([path, organizationId])
+  @@index([organizationId])
+  @@index([permissionKey])
+  @@map("menu_items")
+}
+
+model MenuRole {
+  id         String   @id @default(cuid())
+  roleId     String
+  menuItemId String
+  createdAt  DateTime @default(now())
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, menuItemId])
+  @@index([roleId])
+  @@index([menuItemId])
+  @@map("menu_roles")
+}
+
+model Role {
+  id              String           @id @default(cuid())
+  organizationId  String?
+  name            String
+  displayName     String
+  description     String
+  level           Int
+  isSystem        Boolean          @default(false)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  menuRoles       MenuRole[]
+  rolePermissions RolePermission[]
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@index([isSystem])
+  @@map("roles")
+}
+
+// ------------------------------------------
+// EXPENSES (rest of the schema unchanged)
+// ------------------------------------------
+
+model PolicyRule {
+  id                    String            @id @default(cuid())
+  organizationId        String
+  name                  String
+  ruleType              RuleType
+  country               String
+  cityState             String?
+  amountLimit           Decimal?
+  dailyAmount           Decimal?
+  currency              String            @default("USD")
+  basisFrequency        String?
+  breakfast             Boolean           @default(false)
+  lunch                 Boolean           @default(false)
+  dinner                Boolean           @default(false)
+  descriptionGuidelines String?
+  policyDocument        String?
+  status                Status            @default(Active)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  expenseCategories     ExpenseCategory[]
+  organization          Organization      @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@map("policy_rules")
+}
+
+model ExpenseCategory {
+  id                 String         @id @default(cuid())
+  organizationId     String
+  name               String
+  description        String?
+  policyRuleId       String?
+  requiresBillUpload Boolean        @default(false)
+  financeGLCode      String?        @default("")
+  status             CategoryStatus @default(Enabled)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @default(now())
+  organization       Organization   @relation(fields: [organizationId], references: [id])
+  policyRule         PolicyRule?    @relation(fields: [policyRuleId], references: [id])
+  expenses           Expense[]
+
+  @@index([organizationId])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id                    String        @id @default(cuid())
+  organizationId        String
+  employeeId            String
+  categoryId            String
+  dateOfExpense         DateTime
+  amountSpent           Decimal
+  currency              String
+  billUrl               String?
+  description           String?
+  overrideJustification String?
+  isOverridden          Boolean       @default(false)
+  status                ExpenseStatus @default(Draft)
+  submittedAt           DateTime?
+  approvedBy            String?
+  approvedAt            DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @default(now())
+  country               String?
+  cityState             String?
+  startDateOfExpense    DateTime?
+  endDateOfExpense      DateTime?
+
+  approvals      Approval[]
+  approvedByUser User?           @relation(name: "ApprovedByUser", fields: [approvedBy], references: [id])
+  category       ExpenseCategory @relation(fields: [categoryId], references: [id])
+  employee       User            @relation(name: "UserToExpense", fields: [employeeId], references: [id], onDelete: Cascade)
+  reimbursements Reimbursement[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([dateOfExpense])
+  @@index([employeeId, status])
+  @@map("expenses")
+}
+
+model Approval {
+  id             String         @id @default(cuid())
+  organizationId String
+  expenseId      String
+  approverId     String
+  action         ApprovalAction @default(Pending)
+  comment        String?
+  actionedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  approver       User           @relation(name: "ApprovalToApprover", fields: [approverId], references: [id])
+  expense        Expense        @relation(fields: [expenseId], references: [id])
+
+  @@index([organizationId])
+  @@index([approverId])
+  @@index([expenseId])
+  @@map("approvals")
+}
+
+model Reimbursement {
+  id               String   @id @default(cuid())
+  organizationId   String
+  expenseId        String
+  amountReimbursed Decimal
+  paymentDate      DateTime
+  paymentMethod    String
+  paymentReference String?
+  financeNotes     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String
+  expense          Expense  @relation(fields: [expenseId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([expenseId])
+  @@index([userId])
+  @@map("reimbursements")
+}
+
+// ------------------------------------------
+// ASSETS, LEAVES, HR, FILES, UTILITIES (rest unchanged)
+// ------------------------------------------
+
+model Asset {
+  id             String      @id @default(cuid())
+  organizationId String
+  name           String
+  imageUrl       String?
+  assetTypeId    String
+  locationId     String
+  serialNumber   String?
+  description    String?
+  status         AssetStatus @default(WORKING)
+  userId         String?
+  brokenById     String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @default(now())
+
+  lendings     AssetLending[]     @relation(name: "AssetLendings")
+  transactions AssetTransaction[]
+  assetType    AssetType          @relation(fields: [assetTypeId], references: [id])
+  location     Location           @relation(fields: [locationId], references: [id])
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  user         User?              @relation(name: "UserToAsset", fields: [userId], references: [id])
+  brokenBy     User?              @relation(name: "BrokenByUser", fields: [brokenById], references: [id])
+
+  @@unique([serialNumber, organizationId])
+  @@index([organizationId])
+  @@index([assetTypeId])
+  @@index([locationId])
+  @@index([status])
+  @@map("assets")
+}
+
+model AssetType {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  assets         Asset[]
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("asset_types")
+}
+
+model Location {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  address        String?
+  type           LocationType
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  assets           Asset[]
+  companyRelations CompanyRelation[]
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+  users            User[]
+
+  @@unique([name, address, organizationId])
+  @@index([organizationId])
+  @@index([type])
+  @@index([organizationId, type])
+  @@map("locations")
+}
+
+model AssetTransaction {
+  id                String   @id @default(cuid())
+  organizationId    String
+  assetId           String
+  accountNumber     String
+  purchaseDate      DateTime
+  price             Decimal
+  currency          String   @default("USD")
+  depreciationPrice Decimal?
+  notes             String?
+  userId            String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+  asset             Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([assetId])
+  @@index([userId])
+  @@map("asset_transactions")
+}
+
+model AssetLending {
+  id               String             @id @default(cuid())
+  organizationId   String
+  assetId          String
+  employeeId       String
+  lendById         String
+  returnById       String?
+  lendDate         DateTime
+  returnDate       DateTime?
+  actualReturnDate DateTime?
+  notes            String?
+  status           AssetLendingStatus @default(PENDING)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now())
+  asset            Asset              @relation(name: "AssetLendings", fields: [assetId], references: [id], onDelete: Cascade)
+  employee         User               @relation(name: "Employee", fields: [employeeId], references: [id], onDelete: Cascade)
+  lentBy           User               @relation(name: "LentBy", fields: [lendById], references: [id])
+  returnedBy       User?              @relation(name: "ReturnedBy", fields: [returnById], references: [id])
+
+  @@index([organizationId])
+  @@index([assetId])
+  @@index([employeeId])
+  @@index([lendDate])
+  @@index([status])
+  @@index([organizationId, status])
+  @@map("asset_lendings")
+}
+
+model LeaveType {
+  id                 String         @id @default(cuid())
+  organizationId     String
+  name               String
+  description        String?
+  defaultTotalLeaves Float          @default(0)
+  defaultMaxPerMonth Float          @default(0)
+  isPaid             Boolean        @default(true)
+  isActive           Boolean        @default(true)
+  minWorkingDaysRequired Int        @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @default(now())
+  leaveBalances      LeaveBalance[]
+  leaveRequests      LeaveRequest[]
+  organization       Organization   @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("leave_types")
+}
+
+model LeaveBalance {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  leaveTypeId    String
+  year           Int
+  totalAllocated Float
+  used           Float     @default(0)
+  pending        Float     @default(0)
+  maxPerMonth    Float
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+  leaveType      LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leaveTypeId, year, organizationId])
+  @@index([organizationId])
+  @@index([organizationId, year])
+  @@index([userId])
+  @@index([leaveTypeId])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id             String      @id @default(cuid())
+  organizationId String
+  userId         String
+  leaveTypeId    String
+  startDate      DateTime    @db.Date
+  endDate        DateTime    @db.Date
+  reason         String
+  isHalfDay      Boolean     @default(false)
+  status         LeaveStatus @default(PENDING)
+  appliedDays    Float
+  isPaidLeave    Boolean     @default(true)
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  reviewNotes    String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @default(now())
+  leaveType      LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  reviewer       User?       @relation(name: "LeaveReviewer", fields: [reviewedBy], references: [id])
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([leaveTypeId])
+  @@index([organizationId, status])
+  @@map("leave_requests")
+}
+
+model PersonalInfo {
+  id                       String         @id @default(cuid())
+  organizationId           String
+  userId                   String         @unique
+  employeeId               String?
+  gender                   Gender?
+  dateOfBirth              DateTime?
+  personalEmail            String?
+  personalPhone            String?
+  workingEmail             String?
+  workingPhone             String?
+  address                  String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  isMarried                Boolean?       @default(false)
+  joiningDate              DateTime?
+  status                   EmployeeStatus @default(ONBOARDING)
+  employmentType           EmploymentType @default(FULL_TIME)
+  profileImageUrl          String?
+  kycDocumentUrl           String?
+  allowLogin               Boolean        @default(false)
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  user                     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, organizationId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("personal_info")
+}
+
+model Department {
+  id               String            @id @default(cuid())
+  organizationId   String
+  name             String
+  description      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now())
+  companyRelations CompanyRelation[]
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("departments")
+}
+
+model Designation {
+  id               String            @id @default(cuid())
+  organizationId   String
+  name             String
+  description      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now())
+  companyRelations CompanyRelation[]
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("designations")
+}
+
+model SalaryDetails {
+  id             String            @id @default(cuid())
+  organizationId String
+  userId         String            @unique
+  salaryGroupId  String?
+  annualCTC      Decimal
+  basicSalary    Decimal?
+  currency       String            @default("USD")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  components     SalaryComponent[]
+  salaryGroup    SalaryGroup?      @relation(fields: [salaryGroupId], references: [id])
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([salaryGroupId])
+  @@map("salary_details")
+}
+
+model SalaryGroup {
+  id             String                @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  isTemplate     Boolean               @default(false)
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @default(now()) @updatedAt
+  salaryDetails  SalaryDetails[]
+  templates      SalaryGroupTemplate[]
+  organization   Organization          @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("salary_groups")
+}
+
+model SalaryComponent {
+  id                  String                   @id @default(cuid())
+  organizationId      String
+  salaryDetailsId     String
+  componentTemplateId String?
+  name                String
+  componentType       ComponentType
+  calculationType     CalculationType
+  value               Decimal
+  formula             String?
+  monthlyAmount       Decimal?                 @default(0)
+  annualAmount        Decimal?                 @default(0)
+  isActive            Boolean                  @default(true)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  salaryDetails       SalaryDetails            @relation(fields: [salaryDetailsId], references: [id], onDelete: Cascade)
+  componentTemplate   SalaryComponentTemplate? @relation(fields: [componentTemplateId], references: [id])
+
+  @@index([organizationId])
+  @@index([componentTemplateId])
+  @@index([salaryDetailsId])
+  @@map("salary_components")
+}
+
+model SalaryComponentTemplate {
+  id              String                @id @default(cuid())
+  organizationId  String
+  name            String
+  componentType   ComponentType
+  calculationType CalculationType
+  defaultValue    Decimal
+  formula         String?
+  description     String?
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  components      SalaryComponent[]
+  groupTemplates  SalaryGroupTemplate[]
+  organization    Organization          @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("salary_component_templates")
+}
+
+model SalaryGroupTemplate {
+  id                  String                  @id @default(cuid())
+  salaryGroupId       String
+  componentTemplateId String
+  defaultValue        Decimal?
+  isRequired          Boolean                 @default(true)
+  displayOrder        Int                     @default(0)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @default(now()) @updatedAt
+  salaryGroup         SalaryGroup             @relation(fields: [salaryGroupId], references: [id], onDelete: Cascade)
+  componentTemplate   SalaryComponentTemplate @relation(fields: [componentTemplateId], references: [id], onDelete: Cascade)
+
+  @@unique([salaryGroupId, componentTemplateId])
+  @@index([salaryGroupId])
+  @@index([componentTemplateId])
+  @@map("salary_group_templates")
+}
+
+model KycDocument {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  userId             String
+  documentType       String
+  documentNumber     String?
+  issuedBy           String?
+  issueDate          DateTime?
+  expiryDate         DateTime?
+  verificationStatus KycStatus @default(PENDING)
+  verifiedBy         String?
+  verifiedAt         DateTime?
+  rejectionReason    String?
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, documentType, organizationId])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([documentType])
+  @@index([verificationStatus])
+  @@map("kyc_documents")
+}
+
+model Agreement {
+  id              String            @id @default(cuid())
+  organizationId  String
+  userId          String
+  templateId      String
+  agreementType   String
+  version         String            @default("1.0")
+  signatureData   Json?
+  status          AgreementStatus   @default(PENDING)
+  sentAt          DateTime          @default(now())
+  viewedAt        DateTime?
+  signedAt        DateTime?
+  expiresAt       DateTime?
+  reminderCount   Int               @default(0)
+  lastReminderAt  DateTime?
+  signatureMethod String?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  template        AgreementTemplate @relation(fields: [templateId], references: [id])
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([status])
+  @@index([agreementType])
+  @@index([templateId])
+  @@map("agreements")
+}
+
+model AgreementTemplate {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  displayName    String
+  description    String?
+  agreementType  String
+  version        String       @default("1.0")
+  variables      Json?
+  isActive       Boolean      @default(true)
+  requiresESign  Boolean      @default(true)
+  validityDays   Int?
+  reminderDays   Json?
+  createdBy      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  agreements     Agreement[]
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@index([agreementType])
+  @@map("agreement_templates")
+}
+
+model Shift {
+  id                String            @id @default(cuid())
+  organizationId    String
+  name              String
+  startTime         String
+  endTime           String
+  lateMarkAfter     String?
+  allowClockOutTill String?
+  earlyClockInTime  String?
+  selfClocking      Boolean           @default(true)
+  allowedIpAddress  String?           @default("")
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+  companyRelations  CompanyRelation[]
+  organization      Organization      @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
+  @@index([organizationId])
+  @@map("shifts")
+}
+
+// ------------------------------------------
+// FILES (generic attachments model)
+// ------------------------------------------
+
+model FileAttachment {
+  id             String @id @default(cuid())
+  organizationId String
+  uploadedById   String
+
+  // File metadata
+  fileName         String
+  originalFileName String
+  fileUrl          String
+  fileType         String
+  fileSize         Int
+  fileExtension    String
+
+  // Attachment context
+  entityType FileEntityType
+  entityId   String
+  fieldName  String?
+
+  // Validation and processing
+  validationStatus FileValidationStatus @default(PENDING)
+  validationErrors Json?
+  processingStatus FileProcessingStatus @default(PENDING)
+
+  // Versioning
+  version          Int     @default(1)
+  replacesFileId   String?
+  replacedByFileId String?
+
+  // Soft delete
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  deletedBy String?
+
+  // Metadata
+  metadata Json?
+  checksum String?
+
+  uploadedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  uploadedBy     User             @relation(name: "FileUploader", fields: [uploadedById], references: [id])
+  replacesFile   FileAttachment?  @relation(name: "FileVersions", fields: [replacesFileId], references: [id], onDelete: SetNull)
+  replacedByFile FileAttachment[] @relation(name: "FileVersions")
+  deletedByUser  User?            @relation(name: "FileDeleter", fields: [deletedBy], references: [id])
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  uploadLogs     FileUploadLog[]
+
+  @@unique([fileUrl])
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([uploadedById])
+  @@index([isDeleted])
+  @@index([validationStatus])
+  @@index([uploadedAt])
+  @@index([entityType, entityId, fieldName, isDeleted])
+  @@map("file_attachments")
+}
+
+model FileUploadLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  fileId         String?
+  action         String
+  status         String
+  errorMessage   String?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  user User            @relation(name: "FileUploadLogs", fields: [userId], references: [id])
+  file FileAttachment? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([fileId])
+  @@index([createdAt])
+  @@index([action])
+  @@index([status])
+  @@map("file_upload_logs")
+}
+
+model StorageQuota {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  totalQuota     BigInt
+  usedQuota      BigInt   @default(0)
+  fileCount      Int      @default(0)
+  lastCalculated DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("storage_quotas")
+}
+
+model SystemLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  level          LogLevel @default(INFO)
+  action         String
+  message        String
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  duration       Int?
+  createdAt      DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([level])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([action])
+  @@index([organizationId, createdAt])
+  @@index([level, createdAt]) // For monitoring dashboards filtering by level over time
+  @@index([action, createdAt]) // For action-specific trend analysis
+  @@map("system_logs")
+}

@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Suraj Inter Gold Database AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-a: #f4f3ec;
+        --bg-b: #e8efe8;
+        --bg-c: #efe6d5;
+        --panel: rgba(255, 255, 255, 0.9);
+        --ink: #13203a;
+        --muted: #52617a;
+        --brand: #136d67;
+        --brand-strong: #0d5853;
+        --brand-soft: #e9f6f4;
+        --line: #d2dbe8;
+        --focus: rgba(19, 109, 103, 0.2);
+        --danger: #b93a32;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+        line-height: 1.45;
+        color: var(--ink);
+        background: radial-gradient(circle at 20% 10%, var(--bg-b), transparent 40%),
+          radial-gradient(circle at 90% 90%, var(--bg-c), transparent 35%),
+          linear-gradient(135deg, var(--bg-a), #f1f6ff);
+      }
+
+      .wrap {
+        max-width: 1440px;
+        margin: 28px auto;
+        padding: 0 20px 28px;
+      }
+
+      .app-grid {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 14px 36px rgba(20, 33, 61, 0.1);
+        backdrop-filter: blur(6px);
+      }
+
+      .controls-panel {
+        position: sticky;
+        top: 16px;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+      }
+
+      .panel-subtitle {
+        margin: 6px 0 14px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+      }
+
+      label {
+        display: block;
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        font: inherit;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        background: #fff;
+        transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+      }
+
+      textarea {
+        min-height: 112px;
+        resize: vertical;
+      }
+
+      input:hover,
+      select:hover,
+      textarea:hover {
+        border-color: #bac9df;
+      }
+
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: 0;
+        border-color: var(--brand);
+        box-shadow: 0 0 0 3px var(--focus);
+      }
+
+      .field-block {
+        margin-top: 12px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 12px;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, var(--brand), #1b7f79);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        box-shadow: 0 8px 20px rgba(19, 109, 103, 0.25);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(19, 109, 103, 0.3);
+        background: linear-gradient(135deg, var(--brand-strong), #0f5f5a);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .error {
+        color: var(--danger);
+        font-weight: 600;
+      }
+
+      .result-head {
+        display: grid;
+        gap: 14px;
+      }
+
+      .result-item {
+        display: grid;
+        gap: 6px;
+      }
+
+      .result-label {
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .result-value {
+        font-size: 0.95rem;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        border-radius: 999px;
+        padding: 6px 11px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border: 1px solid var(--line);
+        background: #f7fafc;
+      }
+
+      .status-pill.answered {
+        color: #0b5f2e;
+        border-color: #97d8b3;
+        background: #e9fbf1;
+      }
+
+      .status-pill.clarify {
+        color: #8a5a00;
+        border-color: #f0cf7b;
+        background: #fff6df;
+      }
+
+      .highlight-box {
+        background: #f7fafc;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+
+      .highlight-box.clarify {
+        background: #fff9ec;
+        border-color: #f2d395;
+      }
+
+      .session-text {
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.84rem;
+        word-break: break-all;
+      }
+
+      .meta-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .meta-badge {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #f8fbff;
+        padding: 5px 10px;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .meta-badge b {
+        color: var(--ink);
+      }
+
+      pre {
+        white-space: pre-wrap;
+        background: #f7fafc;
+        border: 1px solid var(--line);
+        padding: 12px;
+        border-radius: 12px;
+        margin: 0;
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.84rem;
+      }
+
+      table {
+        width: max-content;
+        min-width: 100%;
+        border-collapse: collapse;
+        table-layout: auto;
+        font-size: 0.92rem;
+      }
+
+      th,
+      td {
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        padding: 9px 10px;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+
+      th.col-id,
+      td.col-id {
+        white-space: nowrap;
+      }
+
+      td.col-id {
+        font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.84rem;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        background: #f8fbff;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: #fcfdff;
+      }
+
+      tbody tr:hover td {
+        background: var(--brand-soft);
+      }
+
+      #answerText {
+        line-height: 1.5;
+      }
+
+      #answerText > :first-child {
+        margin-top: 0;
+      }
+
+      #answerText > :last-child {
+        margin-bottom: 0;
+      }
+
+      .table-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        max-height: min(66vh, 760px);
+      }
+
+      .table-scroll table {
+        border: 0;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .toast {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1000;
+        max-width: min(420px, calc(100vw - 24px));
+        background: #1f2937;
+        color: #fff;
+        border-radius: 10px;
+        padding: 10px 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (max-width: 1080px) {
+        .app-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .controls-panel {
+          position: static;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .wrap {
+          margin: 16px auto;
+          padding: 0 12px 18px;
+        }
+
+        .panel {
+          padding: 14px;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .toast {
+          left: 12px;
+          right: 12px;
+          bottom: 12px;
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="app-grid">
+        <div class="panel controls-panel">
+          <h2 class="panel-title">Query Builder</h2>
+          <p class="panel-subtitle">Ask a natural-language question and review SQL + tabular results.</p>
+          <div class="grid">
+            <div>
+              <label for="orgSelect">Organization</label>
+              <select id="orgSelect"></select>
+            </div>
+            <div>
+              <label for="mode">Mode</label>
+              <select id="mode">
+                <option value="stateless">Stateless</option>
+                <option value="stateful">Stateful</option>
+              </select>
+            </div>
+            <div>
+              <label for="page">Page</label>
+              <input id="page" type="number" min="1" value="1" />
+            </div>
+            <div>
+              <label for="pageSize">Page Size</label>
+              <input id="pageSize" type="number" min="1" max="100" value="25" />
+            </div>
+          </div>
+
+          <div class="field-block">
+            <label for="question">Question</label>
+            <textarea id="question" placeholder="Example: show total payments this month by department"></textarea>
+          </div>
+
+          <div class="field-block">
+            <label for="clarificationAnswer">Clarification Answer (optional)</label>
+            <input id="clarificationAnswer" type="text" placeholder="If previous response asked a CLARIFY question" />
+          </div>
+
+          <div class="actions">
+            <button id="runBtn">Run Query</button>
+            <span id="status" class="muted">Ready</span>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div id="errorBox" class="panel hidden">
+            <div class="error" id="errorText"></div>
+          </div>
+
+          <div id="resultBox" class="panel hidden">
+            <div class="result-head">
+              <div class="result-item">
+                <div class="result-label">Status</div>
+                <div id="resultStatus" class="status-pill"></div>
+              </div>
+              <div id="answerBlock" class="result-item">
+                <div class="result-label">Answer</div>
+                <div id="answerText" class="muted result-value"></div>
+              </div>
+              <div class="result-item">
+                <div class="result-label">SQL</div>
+                <pre id="sqlText"></pre>
+              </div>
+              <div id="clarifyBlock" class="result-item hidden">
+                <div class="result-label">Clarify</div>
+                <div id="clarifyText" class="highlight-box clarify"></div>
+              </div>
+              <div id="sessionBlock" class="result-item hidden">
+                <div class="result-label">Session ID</div>
+                <div id="sessionIdText" class="highlight-box session-text"></div>
+              </div>
+              <div class="result-item">
+                <div class="result-label">Data</div>
+                <div id="tableWrap"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@17.0.3/lib/marked.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.3.1/dist/purify.min.js"></script>
+    <script>
+      const orgSelect = document.getElementById('orgSelect')
+      const runBtn = document.getElementById('runBtn')
+      const statusText = document.getElementById('status')
+      const errorBox = document.getElementById('errorBox')
+      const errorText = document.getElementById('errorText')
+      const resultBox = document.getElementById('resultBox')
+      const resultStatus = document.getElementById('resultStatus')
+      const answerBlock = document.getElementById('answerBlock')
+      const answerText = document.getElementById('answerText')
+      const sqlText = document.getElementById('sqlText')
+      const clarifyBlock = document.getElementById('clarifyBlock')
+      const clarifyText = document.getElementById('clarifyText')
+      const sessionBlock = document.getElementById('sessionBlock')
+      const sessionIdText = document.getElementById('sessionIdText')
+      const tableWrap = document.getElementById('tableWrap')
+      const toast = document.getElementById('toast')
+
+      const questionInput = document.getElementById('question')
+      const modeInput = document.getElementById('mode')
+      const pageInput = document.getElementById('page')
+      const pageSizeInput = document.getElementById('pageSize')
+      const clarificationAnswerInput = document.getElementById('clarificationAnswer')
+
+      let lastSessionId = ''
+      let isQueryRunning = false
+      let toastTimer = null
+
+      function showError(message) {
+        errorText.textContent = message
+        errorBox.classList.remove('hidden')
+      }
+
+      function hideError() {
+        errorText.textContent = ''
+        errorBox.classList.add('hidden')
+      }
+
+      function showToast(message) {
+        if (!toast) {
+          return
+        }
+
+        toast.textContent = message
+        toast.classList.add('show')
+
+        if (toastTimer) {
+          clearTimeout(toastTimer)
+        }
+
+        toastTimer = setTimeout(() => {
+          toast.classList.remove('show')
+        }, 2200)
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;')
+      }
+
+      function isIdColumn(columnName) {
+        const normalized = String(columnName || '').trim().toLowerCase()
+        return normalized === 'id' || normalized.endsWith('id') || normalized.endsWith('_id') || normalized.includes('uuid')
+      }
+
+      function renderRows(data) {
+        const page = Number(data?.page ?? 1)
+        const pageSize = Number(data?.pageSize ?? 0)
+        const rowCountReturned = Number(data?.rowCountReturned ?? 0)
+        const hasMore = Boolean(data?.hasMore)
+
+        const badges = `
+          <div class="meta-badges">
+            <span class="meta-badge">Page <b>${page}</b></span>
+            <span class="meta-badge">Page Size <b>${pageSize}</b></span>
+            <span class="meta-badge">Rows <b>${rowCountReturned}</b></span>
+            <span class="meta-badge">Has More <b>${hasMore ? 'Yes' : 'No'}</b></span>
+          </div>
+        `
+
+        if (!data || !Array.isArray(data.rows) || data.rows.length === 0) {
+          tableWrap.innerHTML = `${badges}<div class="muted">No rows returned.</div>`
+          return
+        }
+
+        const columns = Array.isArray(data.columns) ? data.columns : Object.keys(data.rows[0] || {})
+
+        const head = columns
+          .map((col) => {
+            const classes = isIdColumn(col) ? 'col-id' : ''
+            return `<th class="${classes}">${escapeHtml(col)}</th>`
+          })
+          .join('')
+        const body = data.rows
+          .map((row) => {
+            const cells = columns
+              .map((col) => {
+                const classes = isIdColumn(col) ? 'col-id' : ''
+                const value = row[col] ?? ''
+                const text = escapeHtml(value)
+                return `<td class="${classes}" title="${text}">${text}</td>`
+              })
+              .join('')
+            return `<tr>${cells}</tr>`
+          })
+          .join('')
+
+        tableWrap.innerHTML = `
+          ${badges}
+          <div class="table-scroll">
+            <table>
+              <thead><tr>${head}</tr></thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        `
+      }
+
+      function renderAnswer(data) {
+        const answer = typeof data.answer === 'string' ? data.answer : ''
+        const rowCount = Number(data?.data?.rowCountReturned ?? 0)
+        const hasTabularRows = Number.isFinite(rowCount) && rowCount > 0
+
+        if (data.status === 'answered' && hasTabularRows) {
+          answerText.textContent = ''
+          answerBlock.classList.add('hidden')
+          return
+        }
+
+        answerBlock.classList.remove('hidden')
+
+        if (answer.length > 0) {
+          const markdownHtml = marked.parse(answer, { gfm: true, breaks: true })
+          answerText.innerHTML = DOMPurify.sanitize(markdownHtml)
+          return
+        }
+
+        answerText.textContent = ''
+      }
+
+      async function loadOrganizations() {
+        statusText.textContent = 'Loading organizations...'
+        try {
+          const response = await fetch('/v1/organizations?limit=300')
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to load organizations')
+          }
+
+          const items = Array.isArray(data.organizations) ? data.organizations : []
+          orgSelect.innerHTML = items
+            .map((org) => `<option value="${org.id}">${org.name || org.id}</option>`)
+            .join('')
+
+          if (items.length === 0) {
+            orgSelect.innerHTML = '<option value="">No organizations</option>'
+          }
+
+          statusText.textContent = `Loaded ${items.length} organizations`
+        } catch (error) {
+          showError(error instanceof Error ? error.message : 'Organization load failed')
+          statusText.textContent = 'Failed to load organizations'
+        }
+      }
+
+      runBtn.addEventListener('click', async () => {
+        if (isQueryRunning) {
+          return
+        }
+
+        isQueryRunning = true
+        runBtn.disabled = true
+        runBtn.textContent = 'Running...'
+        hideError()
+        resultBox.classList.add('hidden')
+        statusText.textContent = 'Running...'
+
+        const question = questionInput.value.trim()
+        if (!question) {
+          showError('Please enter a question')
+          statusText.textContent = 'Ready'
+          isQueryRunning = false
+          runBtn.disabled = false
+          runBtn.textContent = 'Run Query'
+          return
+        }
+
+        const parsedPageSize = Number(pageSizeInput.value || 25)
+        if (!Number.isFinite(parsedPageSize) || parsedPageSize < 1 || parsedPageSize > 100) {
+          showToast('Page size must be between 1 and 100')
+          statusText.textContent = 'Ready'
+          isQueryRunning = false
+          runBtn.disabled = false
+          runBtn.textContent = 'Run Query'
+          return
+        }
+
+        const selectedOrgId = orgSelect.value
+
+        const payload = {
+          question,
+          page: Number(pageInput.value || 1),
+          pageSize: parsedPageSize,
+          mode: modeInput.value,
+          sessionId: lastSessionId || undefined,
+          clarificationAnswer: clarificationAnswerInput.value.trim() || undefined
+        }
+
+        try {
+          const headers = { 'Content-Type': 'application/json' }
+          if (selectedOrgId) {
+            headers['x-org-id'] = selectedOrgId
+          }
+
+          const response = await fetch('/v1/query', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+          })
+
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Query request failed')
+          }
+
+          resultBox.classList.remove('hidden')
+          const statusValue = (data.status || '').toLowerCase()
+          resultStatus.textContent = data.status || ''
+          resultStatus.className = `status-pill ${statusValue}`
+          sqlText.textContent = data.sql || ''
+          renderAnswer(data)
+          if (data.question) {
+            clarifyText.textContent = data.question
+            clarifyBlock.classList.remove('hidden')
+          } else {
+            clarifyText.textContent = ''
+            clarifyBlock.classList.add('hidden')
+          }
+
+          if (data.sessionId) {
+            lastSessionId = data.sessionId
+            sessionIdText.textContent = data.sessionId
+            sessionBlock.classList.remove('hidden')
+          } else {
+            sessionIdText.textContent = ''
+            sessionBlock.classList.add('hidden')
+          }
+
+          renderRows(data.data)
+          statusText.textContent = 'Done'
+        } catch (error) {
+          showError(error instanceof Error ? error.message : 'Query request failed')
+          statusText.textContent = 'Failed'
+        } finally {
+          isQueryRunning = false
+          runBtn.disabled = false
+          runBtn.textContent = 'Run Query'
+        }
+      })
+
+      questionInput.addEventListener('keydown', (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+          event.preventDefault()
+          runBtn.click()
+        }
+      })
+
+      loadOrganizations().catch(() => undefined)
+    </script>
+  </body>
+</html>
