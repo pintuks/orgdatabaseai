@@ -278,6 +278,35 @@
         color: var(--ink);
       }
 
+      .pagination {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 10px;
+      }
+
+      .pager-btn {
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: none;
+        padding: 7px 12px;
+        font-weight: 600;
+      }
+
+      .pager-btn:hover {
+        transform: none;
+        box-shadow: none;
+        background: #f5f8fc;
+      }
+
+      .pager-btn:disabled {
+        background: #f6f7f9;
+        color: #8893a7;
+        border-color: #d5dde9;
+      }
+
       pre {
         white-space: pre-wrap;
         background: #f7fafc;
@@ -596,11 +625,52 @@
         return normalized === 'id' || normalized.endsWith('id') || normalized.endsWith('_id') || normalized.includes('uuid')
       }
 
+      function renderPagination(page, hasMore) {
+        const canPrev = page > 1
+        const canNext = hasMore
+
+        return `
+          <div class="pagination">
+            <button type="button" class="pager-btn" data-page-action="prev" ${canPrev ? '' : 'disabled'}>Previous</button>
+            <button type="button" class="pager-btn" data-page-action="next" ${canNext ? '' : 'disabled'}>Next</button>
+          </div>
+        `
+      }
+
+      function bindPaginationControls(page, hasMore) {
+        const prevButton = tableWrap.querySelector('[data-page-action="prev"]')
+        const nextButton = tableWrap.querySelector('[data-page-action="next"]')
+
+        if (prevButton) {
+          prevButton.addEventListener('click', () => {
+            if (isQueryRunning || page <= 1) {
+              return
+            }
+
+            pageInput.value = String(page - 1)
+            runBtn.click()
+          })
+        }
+
+        if (nextButton) {
+          nextButton.addEventListener('click', () => {
+            if (isQueryRunning || !hasMore) {
+              return
+            }
+
+            pageInput.value = String(page + 1)
+            runBtn.click()
+          })
+        }
+      }
+
       function renderRows(data) {
-        const page = Number(data?.page ?? 1)
+        const rawPage = Number(data?.page ?? 1)
+        const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1
         const pageSize = Number(data?.pageSize ?? 0)
         const rowCountReturned = Number(data?.rowCountReturned ?? 0)
         const hasMore = Boolean(data?.hasMore)
+        const pagination = renderPagination(page, hasMore)
 
         const badges = `
           <div class="meta-badges">
@@ -612,7 +682,8 @@
         `
 
         if (!data || !Array.isArray(data.rows) || data.rows.length === 0) {
-          tableWrap.innerHTML = `${badges}<div class="muted">No rows returned.</div>`
+          tableWrap.innerHTML = `${badges}${pagination}<div class="muted">No rows returned.</div>`
+          bindPaginationControls(page, hasMore)
           return
         }
 
@@ -640,6 +711,7 @@
 
         tableWrap.innerHTML = `
           ${badges}
+          ${pagination}
           <div class="table-scroll">
             <table>
               <thead><tr>${head}</tr></thead>
@@ -647,6 +719,7 @@
             </table>
           </div>
         `
+        bindPaginationControls(page, hasMore)
       }
 
       function renderAnswer(data) {
@@ -719,6 +792,16 @@
           return
         }
 
+        const parsedPage = Number(pageInput.value || 1)
+        if (!Number.isFinite(parsedPage) || parsedPage < 1) {
+          showToast('Page must be 1 or greater')
+          statusText.textContent = 'Ready'
+          isQueryRunning = false
+          runBtn.disabled = false
+          runBtn.textContent = 'Run Query'
+          return
+        }
+
         const parsedPageSize = Number(pageSizeInput.value || 25)
         if (!Number.isFinite(parsedPageSize) || parsedPageSize < 1 || parsedPageSize > 100) {
           showToast('Page size must be between 1 and 100')
@@ -733,7 +816,7 @@
 
         const payload = {
           question,
-          page: Number(pageInput.value || 1),
+          page: parsedPage,
           pageSize: parsedPageSize,
           mode: modeInput.value,
           sessionId: lastSessionId || undefined,
@@ -782,6 +865,9 @@
           }
 
           renderRows(data.data)
+          if (data?.data && Number.isFinite(Number(data.data.page))) {
+            pageInput.value = String(Math.max(1, Number(data.data.page)))
+          }
           statusText.textContent = 'Done'
         } catch (error) {
           showError(error instanceof Error ? error.message : 'Query request failed')
