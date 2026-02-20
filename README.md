@@ -76,6 +76,7 @@ Responses:
 
 - Single `SELECT` only
 - No comments, semicolons, or mutating SQL keywords
+- HTTP method guard blocks all mutating verbs except explicit allowlisted routes
 - Table/column allowlist from live `information_schema`
 - Sensitive column denylist (`password`, `token`, `secret`, etc.)
 - Automatic tenant filter injection for tables with `organizationId`
