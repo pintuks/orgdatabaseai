@@ -11,6 +11,7 @@ import { logger } from './utils/logger'
 import { SchemaRegistry } from './schema/cache'
 import { FastRouterClient } from './llm/fastrouter-client'
 import { createAuthMiddleware } from './middleware/auth'
+import { createHttpMethodGuard } from './middleware/http-method-guard'
 import { createQueryRouter } from './routes/query'
 import { createOrganizationsRouter } from './routes/organizations'
 import { RedisClarifyStore } from './session/redis-store'
@@ -93,6 +94,16 @@ async function bootstrap(): Promise<void> {
   app.use(express.json({ limit: '1mb' }))
   app.use(pinoHttp({ logger }))
   app.use(express.static('public'))
+  app.use(
+    createHttpMethodGuard({
+      allowedMutations: [
+        {
+          method: 'POST',
+          path: '/v1/query'
+        }
+      ]
+    })
+  )
 
   app.get('/health', (_req, res) => {
     res.json({
